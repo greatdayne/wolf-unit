@@ -32,6 +32,7 @@ jobs:
           }
           set -o pipefail
           mkdir -p build_syn
+          printf '`define BUILD_DATE "%s"\n' "$(date +%y%m%d)" > build_id.v
           qrun 'quartus_map Arcade-SmashTV -c Arcade-SmashTV --verilog_macro="WOLF_MASTER=1" --verilog_macro="USE_DDR3_GFX=1" --verilog_macro="USE_DDR3_VRAM=1"' 2>&1 | tee build_syn/hw_map.log | tail -4
           qrun 'quartus_fit Arcade-SmashTV -c Arcade-SmashTV' 2>&1 | tee build_syn/hw_fit.log | tail -4
           qrun 'quartus_sta Arcade-SmashTV -c Arcade-SmashTV' 2>&1 | tee build_syn/hw_sta.log | grep -iE "slack|error" | tail -8
