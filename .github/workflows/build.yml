@@ -39,9 +39,15 @@ jobs:
           qrun 'quartus_asm Arcade-SmashTV -c Arcade-SmashTV' 2>&1 | tee build_syn/hw_asm.log | tail -4
           cp output_files/q256_scanfix/Arcade-SmashTV.rbf Arcade-WolfUnit.rbf
 
+      - name: dump errors on failure
+        if: failure()
+        run: grep -hiE "^(Error|Critical)" build_syn/*.log 2>/dev/null | head -50 || true
+
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: Arcade-WolfUnit-SuperMax
           path: |
             Arcade-WolfUnit.rbf
-            build_syn/hw_sta.log
+            build_syn/*.log
+          if-no-files-found: warn
