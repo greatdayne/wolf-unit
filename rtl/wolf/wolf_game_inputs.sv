@@ -28,6 +28,7 @@ module wolf_game_inputs #(
     localparam logic [2:0] PROFILE_NBA      = 3'd4;
     localparam logic [2:0] PROFILE_NBAMAX   = 3'd5;
     localparam logic [2:0] PROFILE_RAMPAGE  = 3'd6;
+    localparam logic [2:0] PROFILE_SUPERMAX = 3'd7;  // Hangtime rebuild: NBA harness + flat gfx
 
     logic [2:0]  active_profile;
     logic [15:0] in2_active;
@@ -47,6 +48,7 @@ module wolf_game_inputs #(
                 PROFILE_NBA,
                 PROFILE_NBAMAX,
                 PROFILE_RAMPAGE: active_profile = game_profile;
+                PROFILE_SUPERMAX: active_profile = PROFILE_NBA; // same harness as Hangtime
                 default:         active_profile = PROFILE;
             endcase
         end

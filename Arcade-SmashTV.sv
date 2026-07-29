@@ -532,6 +532,7 @@ localparam bit GAME_MK3_GFX_LAYOUT = 1'b0;
 `endif
 wolf_gfx_interleave #(.MK3_LAYOUT(GAME_MK3_GFX_LAYOUT)) u_gfxinterleave
 	(.mk3_layout_i(active_game_profile == 3'd2),
+	 .flat_layout_i(active_game_profile == 3'd7), // Super Max Hangtime: 24-chip stream
 	 .lin_addr(ioctl_addr[24:0]), .dest_addr(gfx_dest_addr));
 
 // FIFO extracted to rtl/wolf/wolf_gfxdl_fifo.sv (simulable seam). The first cut's
@@ -796,7 +797,7 @@ always @(posedge clk_sys) begin
 		game_profile <= DEFAULT_GAME_PROFILE;
 	else if (profile_download && ioctl_wr && (ioctl_addr == 0)) begin
 		case (ioctl_dout[2:0])
-			3'd0, 3'd1, 3'd2, 3'd3, 3'd4, 3'd5, 3'd6:
+			3'd0, 3'd1, 3'd2, 3'd3, 3'd4, 3'd5, 3'd6, 3'd7:
 				game_profile <= ioctl_dout[2:0];
 			default:
 				game_profile <= DEFAULT_GAME_PROFILE;

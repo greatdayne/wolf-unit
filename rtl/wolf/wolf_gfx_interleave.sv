@@ -20,6 +20,7 @@ module wolf_gfx_interleave #(
     parameter bit MK3_LAYOUT = 1'b0
 ) (
     input  logic        mk3_layout_i, // runtime master-core profile; may be left open by legacy TBs
+    input  logic        flat_layout_i,// 24-chip stream: U114-U117 populated (Hangtime rebuild)
     input  logic [24:0] lin_addr,     // 0..0x13FFFFF (20 chips x 1MB, MRA part order)
     output logic [24:0] dest_addr     // byte address in the 32MB gfx region
 );
@@ -35,7 +36,10 @@ module wolf_gfx_interleave #(
             3'd1: group_base = 25'h0400000;
             3'd2: group_base = 25'h0800000;
             3'd3: group_base = 25'h0C00000;
-            3'd4: group_base = 25'h1400000;   // skips the 0x1000000 U114-U117 gap
+            // flat: 24-chip stream carries U117..U114 at group 4 and U113..U110
+            // at group 5 -- identity bank mapping, no gap to skip.
+            3'd4: group_base = flat_layout_i ? 25'h1000000 : 25'h1400000;
+            3'd5: group_base = 25'h1400000;   // reachable only in flat 24-chip streams
             default: group_base = 25'h0000000;
         endcase
     end

@@ -284,7 +284,7 @@ module wolf_memsys
         wwf_io_shuffle_active = 1'b1;
         pic_status_delay_active = 1'b0;
       end
-      3'd0, 3'd2, 3'd4, 3'd5:
+      3'd0, 3'd2, 3'd4, 3'd5, 3'd7:
         pic_status_delay_active = 1'b0;
       3'd3, 3'd6:
         pic_status_delay_active = 1'b1;
@@ -494,7 +494,7 @@ module wolf_memsys
     pic_rdata_int = pic_rdata_param;
     pic_status_raw = pic_status_param;
     case (game_profile)
-      3'd0, 3'd1, 3'd2, 3'd4, 3'd5: begin
+      3'd0, 3'd1, 3'd2, 3'd4, 3'd5, 3'd7: begin
         pic_rdata_int = pic_rdata_dev;
         pic_status_raw = pic_status_dev;
       end
