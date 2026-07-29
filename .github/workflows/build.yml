@@ -5,6 +5,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [1, 2, 3, 4, 6, 7, 8, 9]
     steps:
       - uses: actions/checkout@v4
 
@@ -13,7 +17,6 @@ jobs:
           curl -sL -o /tmp/sv2v.zip https://github.com/zachjs/sv2v/releases/download/v0.0.12/sv2v-Linux.zip
           echo "ff8c9eea5bc029b372fb4953427625cddb7cf7e58c1240623ac9f260818d5a00  /tmp/sv2v.zip" | sha256sum -c -
           cd /tmp && unzip -q sv2v.zip && chmod +x sv2v-Linux/sv2v
-          /tmp/sv2v-Linux/sv2v --version
 
       - name: sv2v convert (master-core macros)
         run: |
@@ -21,10 +24,9 @@ jobs:
           export SV2V_EXTRA="-DWOLF_MASTER=1 -DUSE_DDR3_GFX=1 -DUSE_DDR3_VRAM=1"
           bash quartus/build_sv2v.sh
 
-      - name: pull quartus container
-        run: docker pull raetro/quartus:17.0
-
-      - name: quartus map/fit/sta/asm (in container)
+      - name: quartus flow (seed ${{ matrix.seed }})
+        env:
+          SEED: ${{ matrix.seed }}
         run: |
           qrun() {
             docker run --rm -v "$PWD":/build -w /build --entrypoint bash raetro/quartus:17.0 \
@@ -33,22 +35,24 @@ jobs:
           set -o pipefail
           mkdir -p build_syn
           printf '`define BUILD_DATE "%s"\n' "$(date +%y%m%d)" > build_id.v
-          qrun 'quartus_map Arcade-SmashTV -c Arcade-SmashTV --verilog_macro="WOLF_MASTER=1" --verilog_macro="USE_DDR3_GFX=1" --verilog_macro="USE_DDR3_VRAM=1"' 2>&1 | tee build_syn/hw_map.log | tail -4
-          qrun 'quartus_fit Arcade-SmashTV -c Arcade-SmashTV' 2>&1 | tee build_syn/hw_fit.log | tail -4
-          qrun 'quartus_sta Arcade-SmashTV -c Arcade-SmashTV' 2>&1 | tee build_syn/hw_sta.log | grep -iE "slack|error" | tail -8
+          sed -i "s/^set_global_assignment -name SEED .*/set_global_assignment -name SEED $SEED/" Arcade-SmashTV.qsf
+          qrun 'quartus_map Arcade-SmashTV -c Arcade-SmashTV --verilog_macro="WOLF_MASTER=1" --verilog_macro="USE_DDR3_GFX=1" --verilog_macro="USE_DDR3_VRAM=1"' 2>&1 | tee build_syn/hw_map.log | tail -3
+          qrun 'quartus_fit Arcade-SmashTV -c Arcade-SmashTV' 2>&1 | tee build_syn/hw_fit.log | tail -3
+          qrun 'quartus_sta Arcade-SmashTV -c Arcade-SmashTV' 2>&1 | tee build_syn/hw_sta.log | grep -iE "worst-case|not met" | tail -8
           bash quartus/check_timing.sh build_syn/hw_sta.log
-          qrun 'quartus_asm Arcade-SmashTV -c Arcade-SmashTV' 2>&1 | tee build_syn/hw_asm.log | tail -4
+          qrun 'quartus_asm Arcade-SmashTV -c Arcade-SmashTV' 2>&1 | tee build_syn/hw_asm.log | tail -3
           cp output_files/q256_scanfix/Arcade-SmashTV.rbf Arcade-WolfUnit.rbf
+          grep -E "Worst-case setup slack" output_files/q256_scanfix/Arcade-SmashTV.sta.rpt | head -2 || true
 
       - name: dump errors on failure
         if: failure()
-        run: grep -hiE "^(Error|Critical)" build_syn/*.log 2>/dev/null | head -50 || true
+        run: grep -hiE "^(Error|Critical)|not met|Worst-case" build_syn/*.log 2>/dev/null | head -30 || true
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Arcade-WolfUnit-SuperMax
+          name: rbf-seed-${{ matrix.seed }}
           path: |
             Arcade-WolfUnit.rbf
-            build_syn/*.log
+            build_syn/hw_sta.log
           if-no-files-found: warn
